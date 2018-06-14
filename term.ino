@@ -5,8 +5,8 @@
 SoftwareSerial Serial1(6, 7);
 #endif
 
-char ssid[] = "";
-char pass[] = "";
+char ssid[] = "CoEvolution";
+char pass[] = "rlakfrh4";
 int status = WL_IDLE_STATUS;
 int pin_rain = A0;
 int motor_dir1 = 12;
@@ -14,8 +14,10 @@ int motor_dir2 = 13;
 int motor_pwm = 11;
 int win_status = HIGH;
 int rain_pos = 0;
+int response_type = 1;
+int motor_init = 0;
 WiFiEspServer server(80);
-RingBuffer buf(8);
+RingBuffer buf(100);
 
 void setup()
 {
@@ -47,7 +49,7 @@ void setup()
   server.begin();
 }
 
-void Motor_On()
+void Motor_Act()
 {
   unsigned long pretime = millis();
   unsigned long curtime = millis();
@@ -58,16 +60,12 @@ void Motor_On()
     analogWrite(motor_pwm, 255);
     curtime = millis();
   }
-}
-
-void Motor_Off()
-{
   digitalWrite(motor_dir1, LOW);
   digitalWrite(motor_dir2, LOW);
   digitalWrite(motor_pwm, HIGH);
 }
 
-void printWifiStatus()
+void printWiFiStatus()
 {
   Serial.print("SSID: ");
   Serial.println(WiFi.SSID());
@@ -80,31 +78,41 @@ void printWifiStatus()
   Serial.println();
 }
 
-void main_page(WiFiEspClient client)
+void sendHttpResponse(WiFiEspClient client)
 {
   client.println("HTTP/1.1 200 OK");
   client.println("Content-type:text/html");
   client.println();
-  client.println("<html>");
-  client.println("<body>");
-  client.print("Current window status : ");
-  client.println(win_status? "Open" : "Close");
-  client.print("Possibility of raindrop(0~1023) : ");
-  client.println(rain_pos);
-  client.println("<br/>");
-  client.println("<a href=\"/close\">CLOSE WINDOW RIGHT NOW!</a>");
-  client.println("</body>");
-  client.println("</html>");
-  client.println();
-}
-
-void close_page(WiFiEspClient client)
-{
-  client.println("HTTP/1.1 200 OK);
-  client.println("Content-type:text/html");
-  client.println();
-  client.println("Current window status is \"CLOSE\".");
-  client.println("Be cautious: You must restart your program with your window opened to simulate once again.");
+  if (win_status)
+  {
+    client.println("<html>");
+    client.println("<body>");
+    client.print("Current window status : ");
+    client.println(win_status? "Open" : "Close");
+    client.print("Possibility of raindrop(0~1023) : ");
+    client.println(rain_pos);
+    client.println("<br/>");
+    client.println("<a href=\"/close\">CLOSE WINDOW RIGHT NOW!</a>");
+    client.println("</body>");
+    client.println("</html>");
+  }
+  else if (!win_status)
+  {
+    client.println("<html>");
+    client.println("<body>");
+    client.println("Current window status : \"CLOSE\".");
+    client.println("<br/>");
+    client.println("Be cautious: You must restart your program with your window opened to simulate once again.");
+    client.println("</body>");
+    client.println("</html>");
+    if (motor_init == 1)
+      Motor_Act();
+    motor_init = 0;
+  }
+  else
+  {
+    client.println("Invalid Access to Server.");
+  }
   client.println();
 }
 
@@ -123,17 +131,21 @@ void loop()
         char c = client.read();
         buf.push(c);
         if (buf.endsWith("\r\n\r\n"))
+        {
+          sendHttpResponse(client);
           break;
-        else if (buf.endsWith("GET / "))
-          response_type = 1;
-        else if (buf.endsWith("GET /close "))
-          response_type = 2;
+        }
+        if (buf.endsWith("GET /close"))
+        {
+          if (win_status)
+          {
+            win_status = LOW;
+            motor_init = 1;
+          }
+        }
       }
     }
-    switch(response_type)
-    {
-      case 1: main_page(client); break;
-      case 2: Motor_On(); Motor_Off(); win_status = LOW; close_page(client); break;
-    }
+    client.stop();
+    Serial.println("Client disconnected");
   }
 }
