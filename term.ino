@@ -5,8 +5,8 @@
 SoftwareSerial Serial1(6, 7);
 #endif
 
-char ssid[] = "CoEvolution";
-char pass[] = "rlakfrh4";
+char ssid[] = "";
+char pass[] = "";
 int status = WL_IDLE_STATUS;
 int pin_rain = A0;
 int motor_dir1 = 12;
