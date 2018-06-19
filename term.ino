@@ -135,7 +135,7 @@ void loop()
           sendHttpResponse(client);
           break;
         }
-        if (buf.endsWith("GET /close"))
+        if (buf.endsWith("GET /close") || rain_pos >= 512)
         {
           if (win_status)
           {
