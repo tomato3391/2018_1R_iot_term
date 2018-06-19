@@ -89,6 +89,7 @@ void sendHttpResponse(WiFiEspClient client)
     client.println("<body>");
     client.print("Current window status : ");
     client.println(win_status? "Open" : "Close");
+    client.println("<br/>");
     client.print("Possibility of raindrop(0~1023) : ");
     client.println(rain_pos);
     client.println("<br/>");
