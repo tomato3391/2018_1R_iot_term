@@ -55,7 +55,7 @@ void Motor_Act()
   unsigned long curtime = millis();
   digitalWrite(motor_dir1, LOW);
   digitalWrite(motor_dir2, HIGH);
-  while (curtime - pretime < 10000)
+  while (curtime - pretime < 100000)
   {
     analogWrite(motor_pwm, 255);
     curtime = millis();
